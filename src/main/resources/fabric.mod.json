@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "summit",
+  "version": "${version}",
+
+  "name": "Summit",
+  "description": "A mod that allows you to sit on stairs and optionally other blocks!",
+  "authors": [
+    "LX86"
+  ],
+  "contact": {
+    "sources": "https://github.com/DistrictOfJoban/Summit"
+  },
+
+  "license": "MIT",
+  "icon": "assets/summit/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.lx862.summitbot.Summit"
+    ]
+  },
+  "mixins": [
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric": "*",
+    "minecraft": ">=1.19.4"
+  }
+}
