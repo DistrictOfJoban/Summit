@@ -112,12 +112,12 @@ public class DiscordBot extends ListenerAdapter {
 
     private boolean triggerAutoModWatch(MessageReceivedEvent event) {
         if (!event.isFromGuild()) return false;
-        if (config.autoModWatch.channels().length == 0) return false;
+        if (config.autoModWatch.length == 0) return false;
 
         String channelId = event.getChannel().getId();
         boolean watchedChannel = false;
-        for (Config.AutoModWatchRule rule : config.autoModWatch.channels()) {
-            if (channelId.equals(rule.channelId())) {
+        for (String watchedChannelId : config.autoModWatch) {
+            if (channelId.equals(watchedChannelId)) {
                 watchedChannel = true;
                 break;
             }
