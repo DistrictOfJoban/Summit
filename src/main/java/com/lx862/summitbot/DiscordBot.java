@@ -4,11 +4,13 @@ import com.lx862.summitbot.command.*;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.SelfUser;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
@@ -16,11 +18,15 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class DiscordBot extends ListenerAdapter {
     public static final List<DiscordCommand> commands = new ArrayList<>();
     private final String brand;
     private final Config config;
+    private final Set<String> autoModInProgress = ConcurrentHashMap.newKeySet();
     private JDA client;
 
     static {
@@ -66,6 +72,7 @@ public class DiscordBot extends ListenerAdapter {
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         if(event.getAuthor().isBot() || event.getAuthor().getId().equals(event.getJDA().getSelfUser().getId())) return;
+        if (triggerAutoModWatch(event)) return;
 
         String messageContent = event.getMessage().getContentRaw();
         String[] args = messageContent.split(" ");
@@ -101,6 +108,35 @@ public class DiscordBot extends ListenerAdapter {
                 }
             }
         }
+    }
+
+    private boolean triggerAutoModWatch(MessageReceivedEvent event) {
+        if (!event.isFromGuild()) return false;
+        if (config.autoModWatch.channels().length == 0) return false;
+
+        String channelId = event.getChannel().getId();
+        boolean watchedChannel = false;
+        for (Config.AutoModWatchRule rule : config.autoModWatch.channels()) {
+            if (channelId.equals(rule.channelId())) {
+                watchedChannel = true;
+                break;
+            }
+        }
+
+        if (!watchedChannel) return false;
+
+        Member member = event.getMember();
+        if (member.hasPermission(Permission.MESSAGE_MANAGE)) return false;
+
+        // to prevent dupe ban if one is like alr in progress
+        String uniqueKey = event.getGuild().getId() + ":" + member.getId();
+        if (!autoModInProgress.add(uniqueKey)) return true;
+
+        String reason = "Compromised account";
+        event.getGuild().ban(member, 1, TimeUnit.DAYS).reason(reason).queue();
+        autoModInProgress.remove(uniqueKey);
+
+        return true;
     }
 
     public Config getConfig() {
